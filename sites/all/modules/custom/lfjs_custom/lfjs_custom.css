@@ -1,0 +1,17 @@
+
+#map-custom {
+  height: 400px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.controls .control {
+  width: 100px;
+  height: 60px;
+  margin-right: 20px;
+  float: left;
+  background: #aaccff;
+  text-align: center;
+  padding-top: 10px;
+  cursor: pointer;
+}

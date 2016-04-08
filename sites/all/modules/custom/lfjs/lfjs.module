@@ -1,0 +1,128 @@
+<?php
+
+
+/**
+ * Implements hook_menu().
+ */
+function lfjs_menu() {
+  $items['restaurants'] = array(
+    'title' => 'Restaurants',
+    'page callback' => '_restaurants',
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  return $items;
+}
+
+/**
+ * Page callback.
+ */
+function _restaurants() {
+  $build = array(
+    'map' => NULL,
+    'list' => NULL,
+  );
+
+  // Add JS
+  drupal_add_js(drupal_get_path('module', 'lfjs') . '/lfjs.js');
+
+  // Add map.
+  $view = views_get_view('restaurants');
+  $view->set_display('map_block');
+  $view->pre_execute();
+  $view->execute();
+
+  // Just a render array.
+  $build['map'] = $view->style_plugin->render();
+
+  // Add List.
+  $view = views_get_view('restaurants');
+  $view->set_display('default');
+  $view->pre_execute();
+  $view->execute();
+
+  $build['list'] = array('#markup' => $view->render());
+
+  return $build;
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function lfjs_form_alter(&$form, &$form_state, $form_id) {
+  if ($form_id == 'views_exposed_form' && $form_state['view']->name == 'restaurants') {
+    // Make sure we keep the action on the correct page.
+    $form['#action'] = '/restaurants';
+  }
+}
+
+/**
+ * Implements hook_views_ajax_data_alter().
+ */
+function lfjs_views_ajax_data_alter(&$commands, $view) {
+  if ($view->name == 'restaurants') {
+    $updated_points = array();
+    $included_ids = array();
+    // Edit points only when on first page.
+    // If no results, current_page == -1.
+    if ($view->query->pager->current_page <= 0) {
+      $map_view = views_get_view('restaurants');
+      $map_view->set_display('map_block');
+
+      // Set exposed filters.
+      $map_view->exposed_input = (array)$view->exposed_input;
+      $map_view->exposed_raw_input = (array)$view->exposed_raw_input;
+      $exposed_data = (array)$view->exposed_data;
+      $map_view->exposed_data = (array)$view->exposed_data;
+
+      $map_view->pre_execute();
+      $map_view->execute();
+
+      $map_settings = $view->display['map_block'];
+
+      foreach ($map_view->result as $i => $obj) {
+        $node = node_load($obj->nid);
+
+        $leaflet_id = 'nid:' . $node->nid;
+
+        $p = array(array(
+          'label' => $node->title,
+          'lat' => $node->field_geo['und'][0]['lat'],
+          'lon' => $node->field_geo['und'][0]['lon'],
+          'popup' => l($node->title, 'node/' . $node->id),
+          'type' => 'point',
+          'leaflet_id' => $leaflet_id,
+          // Grab map icon.
+          'icon' => $map_settings->display_settings['style_options']['icon'],
+        ));
+        drupal_alter('leaflet_views_alter_points_data', $obj, $p);
+        $updated_points[$leaflet_id] = $p[0];
+        $included_ids[] = $leaflet_id;
+      }
+
+      $commands[] = array(
+        'command' => 'leafletSyncPoints',
+        'points' => $updated_points,
+        'included_ids' => $included_ids,
+      );
+    }
+  }
+
+  // Return status messages.
+  //$commands[] = ajax_command_prepend($commands[0]['selector'], theme('status_messages'));
+}
+
+/**
+ * Implements hook_leaflet_views_alter_points_data_alter().
+ */
+function lfjs_leaflet_views_alter_points_data_alter($result, &$points) {
+  foreach ($points as &$point) {
+    // We manully set this here so we can easily grab points later.
+    if (!isset($point['leaflet_id'])) {
+      $point['leaflet_id'] = 'nid:' . $result->nid;
+    }
+
+    $point['popup'] .= ' 2';
+  }
+}
+

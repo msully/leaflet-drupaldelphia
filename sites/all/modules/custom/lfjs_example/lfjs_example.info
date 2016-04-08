@@ -1,0 +1,5 @@
+name = LeafletJS Custom map example module
+description = Functionality for leafletJS custom example module
+
+package = Drupaldelphia
+core = 7.x

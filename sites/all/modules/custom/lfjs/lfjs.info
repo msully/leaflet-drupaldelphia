@@ -1,0 +1,5 @@
+name = LeafletJS example module
+description = Functionality for leafletJS example module
+
+package = Drupaldelphia
+core = 7.x

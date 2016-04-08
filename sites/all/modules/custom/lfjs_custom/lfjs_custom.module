@@ -1,0 +1,37 @@
+<?php
+
+
+/**
+ * Implements hook_menu().
+ */
+function lfjs_custom_menu() {
+  $items['restaurants_custom'] = array(
+    'title' => 'Restaurants Custom',
+    'page callback' => '_restaurants_custom',
+    'access arguments' => array('access content'),
+    'type' => MENU_SUGGESTED_ITEM,
+  );
+  return $items;
+}
+
+function _restaurants_custom() {
+  $build = array(
+    'map' => array(
+      '#markup' => '<div id="map-custom"></div>',
+    ),
+    'controls' => array(
+      '#markup' => '<div class="controls"><div class="control zoom-in">Zoom in</div><div class="control zoom-out">Zoom out</div><div class="control pan-left">Pan left</div><div class="control pan-right">Pan right</div></div>',
+    ),
+  );
+
+  drupal_add_js(drupal_get_path('module', 'lfjs_custom') . '/lfjs_custom.js');
+  drupal_add_css(drupal_get_path('module', 'lfjs_custom') . '/lfjs_custom.css');
+
+  // Add leaflet library.
+  libraries_load('leaflet');
+
+
+  return $build;
+}
+
+
